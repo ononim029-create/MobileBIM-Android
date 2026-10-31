@@ -5,6 +5,7 @@ on:
   push:
     branches: [main]
     paths:
+      - "mobilebim-v0.8.tar.xz"
       - "MobileBIM-Android-v0.8-source.zip"
       - "settings.gradle.kts"
       - "build.gradle.kts"
@@ -20,30 +21,27 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-
       - name: Prepare source tree
         shell: bash
         run: |
           set -euo pipefail
           if [[ -f settings.gradle.kts && -d app && -d core ]]; then
-            echo "Using Android source tree in repository root"
+            echo "Android source tree already present"
+          elif [[ -f mobilebim-v0.8.tar.xz ]]; then
+            tar -tJf mobilebim-v0.8.tar.xz > /dev/null
+            tar -xJf mobilebim-v0.8.tar.xz
+            test -f settings.gradle.kts || { echo "::error::Archive missing settings.gradle.kts"; exit 1; }
           elif [[ -f MobileBIM-Android-v0.8-source.zip ]]; then
             unzip -tq MobileBIM-Android-v0.8-source.zip
             mkdir -p .source-extract
             unzip -q MobileBIM-Android-v0.8-source.zip -d .source-extract
-            test -f .source-extract/MobileBIM-Android-v0.8/settings.gradle.kts || {
-              echo "::error::Archive does not contain expected MobileBIM-Android-v0.8 source directory"
-              exit 1
-            }
             cp -a .source-extract/MobileBIM-Android-v0.8/. ./
-            echo "Source archive extracted successfully"
           else
-            echo "::error::Исходники отсутствуют: загрузите MobileBIM-Android-v0.8-source.zip в корень репозитория (Add file > Upload files)"
-            echo "### Нет исходников приложения" >> "$GITHUB_STEP_SUMMARY"
-            echo "Загрузите **MobileBIM-Android-v0.8-source.zip** в корень репозитория через **Add file → Upload files**. После загрузки APK будет собран автоматически." >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::No Mobile BIM v0.8 source code or source archive found"
             exit 1
           fi
-
+          test -f app/build.gradle.kts
+          test -f core/build.gradle.kts
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
