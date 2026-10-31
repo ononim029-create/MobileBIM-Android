@@ -5,6 +5,7 @@ on:
   push:
     branches: [main]
     paths:
+      - ".github/workflows/android-build.yml"
       - "mobilebim-v0.8.tar.xz"
       - "MobileBIM-Android-v0.8-source.zip"
       - "settings.gradle.kts"
