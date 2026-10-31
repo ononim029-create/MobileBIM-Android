@@ -4,6 +4,14 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    paths:
+      - "MobileBIM-Android-v0.8-source.zip"
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - "gradle.properties"
+      - "gradle/**"
+      - "app/**"
+      - "core/**"
 
 jobs:
   debug-apk:
@@ -12,19 +20,30 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+
       - name: Prepare source tree
         shell: bash
         run: |
-          if [[ -f settings.gradle.kts ]]; then
-            echo 'Using source files in repository root'
+          set -euo pipefail
+          if [[ -f settings.gradle.kts && -d app && -d core ]]; then
+            echo "Using Android source tree in repository root"
           elif [[ -f MobileBIM-Android-v0.8-source.zip ]]; then
+            unzip -tq MobileBIM-Android-v0.8-source.zip
             mkdir -p .source-extract
             unzip -q MobileBIM-Android-v0.8-source.zip -d .source-extract
+            test -f .source-extract/MobileBIM-Android-v0.8/settings.gradle.kts || {
+              echo "::error::Archive does not contain expected MobileBIM-Android-v0.8 source directory"
+              exit 1
+            }
             cp -a .source-extract/MobileBIM-Android-v0.8/. ./
+            echo "Source archive extracted successfully"
           else
-            echo 'Error: source tree or MobileBIM-Android-v0.8-source.zip missing' >&2
+            echo "::error::Исходники отсутствуют: загрузите MobileBIM-Android-v0.8-source.zip в корень репозитория (Add file > Upload files)"
+            echo "### Нет исходников приложения" >> "$GITHUB_STEP_SUMMARY"
+            echo "Загрузите **MobileBIM-Android-v0.8-source.zip** в корень репозитория через **Add file → Upload files**. После загрузки APK будет собран автоматически." >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
